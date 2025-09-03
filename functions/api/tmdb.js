@@ -1,26 +1,23 @@
+// functions/api/tmdb.js
 export async function onRequest(context) {
-  const { request, env } = context
-  const incoming = new URL(request.url)
-  const endpoint = incoming.searchParams.get('endpoint') || ''
-  const params = new URLSearchParams(incoming.searchParams)
-  params.delete('endpoint')
+  const API_KEY = "1ea3ef491cb862f7564dbd0b19323bbc";
+  const { searchParams } = new URL(context.request.url);
 
-  const url = new URL(`https://api.themoviedb.org/3/${endpoint}`)
-  for (const [k,v] of params.entries()) url.searchParams.set(k,v)
+  const language = searchParams.get("language") || "hi";
+  const page = searchParams.get("page") || 1;
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      'Authorization': `Bearer ${env.TMDB_TOKEN}`,
-      'Accept': 'application/json'
-    }
-  })
+  const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_original_language=${language}&sort_by=popularity.desc&page=${page}`;
 
-  const data = await res.text()
-  return new Response(data, {
-    status: res.status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control':'s-maxage=86400'
-    }
-  })
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    return new Response(JSON.stringify(data), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ results: [], total_pages: 1, error: err.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 }
